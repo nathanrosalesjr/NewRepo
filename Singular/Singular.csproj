@@ -9,8 +9,9 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Singular</RootNamespace>
     <AssemblyName>Singular</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -31,10 +32,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="GreyMagic">
-      <HintPath>D:\Tools\HB-3-0-16078-851\GreyMagic.dll</HintPath>
+      <HintPath>..\lib\GreyMagic.dll</HintPath>
     </Reference>
     <Reference Include="Honorbuddy">
-      <HintPath>D:\Tools\HB-3-0-16078-851\Honorbuddy.exe</HintPath>
+      <HintPath>..\lib\Honorbuddy.exe</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -191,6 +192,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="obj\Debug\DesignTimeResolveAssemblyReferencesInput.cache" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="bin\Debug\" />
