@@ -4,10 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SharedMind.Callbacks
+namespace TestCombatRoutine.Core.Managers
 {
-    public interface IPoiChangedCallback
+    public class GoalManager
     {
-        bool PoiChanged();
+
     }
 }

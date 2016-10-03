@@ -4,10 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SharedMind.Callbacks
+namespace HiveMind
 {
-    public interface IPoiChangedCallback
+    public class Class1
     {
-        bool PoiChanged();
     }
 }

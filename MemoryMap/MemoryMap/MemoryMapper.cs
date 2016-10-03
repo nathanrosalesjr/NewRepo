@@ -32,7 +32,8 @@ namespace MemoryMap
             }
             return buffer;
         }
-
+        
+    
         public void Write(int index, byte[] buffer, long offset)
         {
             using (var view = handles[index].CreateViewAccessor(offset, buffer.LongLength, MemoryMappedFileAccess.Write))

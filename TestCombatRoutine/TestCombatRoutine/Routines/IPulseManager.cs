@@ -4,10 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SharedMind.Callbacks
+namespace TestCombatRoutine.Routines
 {
-    public interface IPoiChangedCallback
+    public interface IPulseManager
     {
-        bool PoiChanged();
+        void Pulse();
     }
 }

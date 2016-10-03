@@ -10,6 +10,7 @@ using Styx.CommonBot.POI;
 using Styx.WoWInternals.WoWObjects;
 using System.Numerics;
 using Styx.Common;
+using Bots.DungeonBuddy.Profiles;
 
 namespace SharedMind
 {
@@ -25,6 +26,8 @@ namespace SharedMind
         private BotPoi _lastPoi;
         private float _distanceSquared;
         private TreeHooks _instance;
+        private Profile _currentProfile;
+
 
         public override void Pulse()
         {
@@ -33,6 +36,7 @@ namespace SharedMind
                 _lastPoi = BotPoi.Current;
                 _distanceSquared = Vector3.Distance(Me.Location, _lastPoi.Location);
                 _instance = TreeHooks.Instance;
+                _currentProfile = ProfileManager.CurrentProfile;
             }
         }
         

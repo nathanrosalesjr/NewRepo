@@ -21,6 +21,7 @@ namespace TestCombatRoutine.Rotation
 
         public static Composite RotationSelector()
         {
+           // return TestCombatRoutine.Core.Spell.Cast((int)Core.Helpers.SpellBook.Spells.TigerPalm);
             return null;
         }
 
