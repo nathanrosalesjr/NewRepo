@@ -20,6 +20,12 @@ namespace TestCombatRoutine.Core.Managers
 
         private static ConcurrentDictionary<WoWGuid, WoWUnit> ObservedUnits = new ConcurrentDictionary<WoWGuid, WoWUnit>();
         private static ConcurrentDictionary<WoWGuid, UnitModel> ObservedUnitCache = new ConcurrentDictionary<WoWGuid, UnitModel>();
+        private static ConcurrentDictionary<WoWGuid, Task<bool>> Observers = new ConcurrentDictionary<WoWGuid, Task<bool>>();
+
+        //private static List<Task<bool>> Oberservers = new List<Task<bool>>();
+        private static Task<bool> Master;
+        private static CancellationTokenSource TokenSource = new CancellationTokenSource();
+
 
 
         static List<uint> mySpells;
@@ -30,7 +36,14 @@ namespace TestCombatRoutine.Core.Managers
 
         static ContextManager()
         {
+            var token = TokenSource.Token;
+            Master = Task.Factory.StartNew<bool>(() => Watch(token), token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
             updateContext = Task.Factory.StartNew(UpdateContext);
+        }
+
+        private static bool Watch(CancellationToken token)
+        {
+            return true;
         }
 
         public static void AddToObservedUnits(WoWUnit unit)
