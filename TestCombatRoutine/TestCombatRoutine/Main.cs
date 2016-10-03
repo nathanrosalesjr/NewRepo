@@ -13,10 +13,12 @@ using System.Drawing;
 using HKM = TestCombatRoutine.Core.Managers.HotKeyManager;
 using R = TestCombatRoutine.Rotation.Rotation;
 using U = TestCombatRoutine.Core.Unit;
+using CommonBehaviors.Actions;
+using TestCombatRoutine.Routines;
 
 namespace TestCombatRoutine
 {
-    public class Main : CombatRoutine
+    public partial class Main : CombatRoutine
     {
         private static readonly Version version = new Version(1, 0, 0, 0);
 
@@ -28,20 +30,37 @@ namespace TestCombatRoutine
 
 
         private Composite _preCombatBehavior, _combatBuffBehavior, _combatBehavior;
+        private ActionRunCoroutine _combatCoroutine;
+
+
+
+        private ICoroutineProvider _coroutineProvider;
+        //public override Composite CombatBehavior { get { return _combatBehavior; } }
+        //public override Composite CombatBuffBehavior { get { return _combatBuffsBehavior; } }
+        //public override Composite HealBehavior { get { return _healBehavior; } }
+        //public override Composite PreCombatBuffBehavior { get { return _preCombatBuffsBehavior; } }
+        //public override Composite PullBehavior { get { return _pullBehavior; } }
+        //public override Composite PullBuffBehavior { get { return _pullBuffsBehavior; } }
+        //public override Composite RestBehavior { get { return _restBehavior; } }
+        //public override Composite DeathBehavior { get { return _deathBehavior; } }
+
         public override Composite PreCombatBuffBehavior => _preCombatBehavior ?? (_preCombatBehavior = R.PreCombatBuffing());
-        public override Composite CombatBuffBehavior => _combatBuffBehavior ?? (_combatBuffBehavior = R.CombatBuffing());
-        public override Composite CombatBehavior => _combatBehavior ?? (_combatBehavior = R.RotationSelector());
+        public override Composite CombatBuffBehavior => /*new ActionRunCoroutine(obj => CombatCoroutine());*/_combatBuffBehavior ?? (_combatBuffBehavior = R.CombatBuffing());
+        public override Composite CombatBehavior => _combatCoroutine ?? (_combatCoroutine = new ActionRunCoroutine(obj => _coroutineProvider.GetCombatCoroutine())); //_combatBehavior ?? (_combatBehavior = R.RotationSelector());
+
+        public static async Task<bool> CombatCoroutine() { return false; }
 
 
-        public override void Pulse()
-        {
-            if (!StyxWoW.IsInWorld || Me == null || !Me.IsValid || !Me.IsAlive)
-                return;
-            if (!Me.Combat)
-                return;
-            U.Cache();
-            U.EnemyAnnex(30);
-        }
+        //public override void Pulse()
+        //{
+        //    if (!StyxWoW.IsInWorld || Me == null || !Me.IsValid || !Me.IsAlive)
+        //        return;
+        //    if (!Me.Combat)
+        //        return;
+        //    U.Cache();
+        //    U.EnemyAnnex(30);
+        //}
+
 
 
 
@@ -51,6 +70,8 @@ namespace TestCombatRoutine
         #region [Method] - Hidden Overrides
         public override void Initialize()
         {
+            _coroutineProvider = new CoroutineProvider();
+
             //Logging.Write(Color.OrangeRed, "Hello {0}!", Me.Name);
             //Logging.Write(Color.White, "");
             //Logging.Write(Color.OrangeRed, "For optimal performance please use: Enyo");
