@@ -124,6 +124,16 @@ namespace TestCombatRoutine.Routines
             {
                 Logging.Write($"{pulseCount} Pulses last second");
                 pulseCount = 0;
+                Logging.Write($"{ContextManager.CacheUpdateCount} updates last second");
+                ContextManager.CacheUpdateCount = 0;
+
+                int i = 0;
+                if (i == 0)
+                {
+                    //var unit = Me.CurrentTarget;
+                    //if (!ContextManager.IsObserving(unit.Guid))
+                    //    ContextManager.AddToObservedUnits(unit);
+                }
                 sw.Restart();
             }
 

@@ -1,4 +1,5 @@
-﻿using Styx.WoWInternals.WoWObjects;
+﻿using Styx.Common;
+using Styx.WoWInternals.WoWObjects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,19 @@ namespace TestCombatRoutine.Model
 {
     public class UnitModel
     {
+        public bool NeedsUpdate;
+        int BuffsCount;
+        int CastingSpell;
+        int CurrentTargetGuid;
+        int DebuffsCount;
+        double HealthPercent;
+        bool IsCasting;
+        bool IsInMyPartyOrRaid;
+        bool IsMoving;
+        double ManaPercent;
+        public string SafeName;
+        float X;
+        float Y;
         public UnitModel() { }
         public UnitModel(WoWUnit unit)
         {
@@ -33,15 +47,17 @@ namespace TestCombatRoutine.Model
             HealthPercent = unit.HealthPercent;
             IsCasting = unit.IsCasting;
             IsMoving = unit.IsMoving;
+            ManaPercent = unit.ManaPercent;
+            SafeName = unit.SafeName;
             X = unit.X;
             Y = unit.Y;
-            ManaPercent = unit.ManaPercent;
             NeedsUpdate = false;
         }
 
         public override bool Equals(object obj)
         {
-            if (obj.GetType() == typeof(WoWUnit))
+            return Equals((WoWUnit)(obj));
+            if (obj.GetType().IsSubclassOf(typeof(WoWUnit)))
             {
                 return Equals((WoWUnit)(obj));
             }
@@ -50,56 +66,62 @@ namespace TestCombatRoutine.Model
 
         private bool Equals(WoWUnit unit)
         {
+            if (!unit.IsValid)
+                return false;
+            var message = $"Unit: {unit.SafeName}\n";
+            var neq = false;
             if (BuffsCount != unit.Buffs.Count)
             {
-                return false;
+                message += "Buffs\n";
+                neq = true;
             }
             if (CurrentTargetGuid != unit.CurrentTargetGuid.Entry)
             {
-                return false;
+                message += "Target\n";
+                neq = true;
             }
             if (DebuffsCount != unit.Debuffs.Count)
             {
-                return false;
+                message += "Debuffs\n";
+                neq = true;
             }
             if (HealthPercent != unit.HealthPercent)
             {
-                return false;
+                message += "Health\n";
+                neq = true;
             }
             if (IsCasting != unit.IsCasting)
             {
-                return false;
+                message += "Casting\n";
+                neq = true;
             }
             if (IsMoving != unit.IsMoving)
             {
-                return false;
+                message += "Moving\n";
+                neq = true;
             }
             if (X != unit.X)
             {
-                return false;
+                message += "X\n";
+                neq = true;
             }
             if (Y != unit.Y)
             {
-                return false;
+                message += "Y\n";
+                neq = true;
             }
             if (ManaPercent != unit.ManaPercent)
             {
+                message += "Mana\n";
+                neq = true;
+            }
+            if (neq)
+            {
+                //Logging.Write(message);
                 return false;
             }
             return true;
         }
 
-        public bool NeedsUpdate;
-        int BuffsCount;
-        int CastingSpell;
-        int CurrentTargetGuid;
-        int DebuffsCount;
-        double HealthPercent;
-        bool IsCasting;
-        bool IsInMyPartyOrRaid;
-        bool IsMoving;
-        double ManaPercent;
-        float X;
-        float Y;
     }
 }

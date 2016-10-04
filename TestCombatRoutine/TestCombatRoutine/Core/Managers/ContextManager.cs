@@ -15,15 +15,51 @@ namespace TestCombatRoutine.Core.Managers
 {
     public class ContextManager
     {
+        public interface IUnitOfWork
+        {
+            object[] Parameters { set; }
+
+            bool DoWork();
+        }
+
+        public class NewUnitWork : IUnitOfWork
+        {
+            private object[] parameters;
+            public object[] Parameters { set { parameters = value; } }
+
+            public bool DoWork()
+            {
+                var unit = (WoWUnit)parameters[0];
+                var unitGuid = unit.Guid;
+                if (Observers.ContainsKey(unitGuid))
+                {
+                    return false;
+                }
+                var unitModel = new UnitModel(unit);
+                while (ObservedUnits.TryAdd(unitGuid, unit) == false) { }
+                while (ObservedUnitCache.TryAdd(unitGuid, unitModel) == false) { }
+
+                var task = Task.Factory.StartNew<bool>(() => ObserveUnit(unitGuid, TokenSource.Token), TokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                while (Observers.TryAdd(unitGuid, task) == false) { }
+                Logging.Write($"Added {unit.SafeName} to observed units.");
+                return true;
+            }
+        }
+
+
         private static LocalPlayer Me => StyxWoW.Me;
         private static LocalPlayer oldMe;
 
         private static ConcurrentDictionary<WoWGuid, WoWUnit> ObservedUnits = new ConcurrentDictionary<WoWGuid, WoWUnit>();
         private static ConcurrentDictionary<WoWGuid, UnitModel> ObservedUnitCache = new ConcurrentDictionary<WoWGuid, UnitModel>();
         private static ConcurrentDictionary<WoWGuid, Task<bool>> Observers = new ConcurrentDictionary<WoWGuid, Task<bool>>();
+        public static bool IsObserving(WoWGuid guid) { return Observers.ContainsKey(guid); }
+        public static int CacheUpdateCount = 0;
 
         //private static List<Task<bool>> Oberservers = new List<Task<bool>>();
         private static Task<bool> Master;
+        private static Task<bool> Runner;
+        private static BlockingCollection<IUnitOfWork> JobQueue = new BlockingCollection<IUnitOfWork>();
         private static CancellationTokenSource TokenSource = new CancellationTokenSource();
 
 
@@ -37,20 +73,56 @@ namespace TestCombatRoutine.Core.Managers
         static ContextManager()
         {
             var token = TokenSource.Token;
-            Master = Task.Factory.StartNew<bool>(() => Watch(token), token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
-            updateContext = Task.Factory.StartNew(UpdateContext);
+            Master = Task.Factory.StartNew<bool>(() => Orchestrate(token), token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            Runner = Task.Factory.StartNew<bool>(() => Consume(token), token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            AddToObservedUnits(Me.CurrentTarget);
+            AddToObservedUnits(Me);
+            //updateContext = Task.Factory.StartNew(UpdateContext);
         }
 
-        private static bool Watch(CancellationToken token)
+        private static bool Orchestrate(CancellationToken token)
         {
+            while (!token.IsCancellationRequested)
+            {
+                foreach (var entry in Observers.Where(o => (o.Value.Status == TaskStatus.Faulted) || (o.Value.Status == TaskStatus.RanToCompletion && o.Value.Result == false)))
+                {
+                    var key = entry.Key;
+                    var task = entry.Value;
+                    Logging.Write($"{ObservedUnitCache[key].SafeName} failed");
+                    Observers[key] = Task.Factory.StartNew<bool>(() => ObserveUnit(key, token), token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                    Logging.Write($"Started new task for {ObservedUnitCache[key].SafeName}");
+                }
+                if (Master.Exception != null)
+                {
+                    Logging.Write($"Master failed {Master.Exception.ToString()}");
+                    Master = Task.Factory.StartNew<bool>(() => Orchestrate(token), token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                    Logging.Write($"New master task");
+                }
+            }
             return true;
+        }
+
+        private static bool Consume(CancellationToken token)
+        {
+            try
+            {
+                foreach (var job in JobQueue.GetConsumingEnumerable())
+                {
+                    job.DoWork();
+                }
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public static void AddToObservedUnits(WoWUnit unit)
         {
-            var unitModel = new UnitModel(unit);
-            while (ObservedUnits.TryAdd(unit.Guid, unit) == false) { }
-            while (ObservedUnitCache.TryAdd(unit.Guid, unitModel) == false) { }
+            var parameters = new WoWUnit[] { unit };
+            var work = new NewUnitWork() { Parameters = parameters };
+            JobQueue.Add(work);
         }
 
         public static void AddToMySpells(uint id)
@@ -58,7 +130,7 @@ namespace TestCombatRoutine.Core.Managers
             mySpells.Add(id);
         }
 
-        public static async Task<bool> UpdateObservedUnits()
+        public static bool UpdateObservedUnits()
         {
             Parallel.ForEach<KeyValuePair<WoWGuid, UnitModel>>(ObservedUnitCache.Where(u => u.Value.NeedsUpdate),
                 entry =>
@@ -71,15 +143,28 @@ namespace TestCombatRoutine.Core.Managers
             return true;
         }
 
-        public static async Task<bool> ObserveUnit(WoWGuid guid)
+        public static bool ObserveUnit(WoWGuid guid, CancellationToken token)
         {
-            var unit = ObservedUnits[guid];
-            var cachedUnit = ObservedUnitCache[guid];
-            if (!cachedUnit.Equals(unit))
+            try
             {
-                var unitModel = new UnitModel(unit);
-                ObservedUnitCache[guid] = unitModel;
+                while (!token.IsCancellationRequested)
+                {
+                    var unit = ObservedUnits[guid];
+                    var cachedUnit = ObservedUnitCache[guid];
+                    if (!cachedUnit.Equals(unit))
+                    {
+                        var unitModel = new UnitModel(unit);
+                        ObservedUnitCache[guid] = unitModel;
+                        CacheUpdateCount++;
+                    }
+                }
             }
+            catch(Exception ex)
+            {
+                Logging.Write($"{ObservedUnitCache[guid]} failed: {ex.ToString()}");
+                return false;
+            }
+            
             return true;
         }
 
@@ -107,7 +192,7 @@ namespace TestCombatRoutine.Core.Managers
         public static void Complian(string s)
         {
             Logging.Write(s);
-            Cache();
+            //Cache();
         }
 
         private static void Cache()
